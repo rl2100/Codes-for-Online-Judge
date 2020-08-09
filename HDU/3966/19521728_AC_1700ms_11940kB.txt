@@ -1,0 +1,165 @@
+#pragma comment(linker, "/STACK:1024000000,1024000000")
+#include<iostream>
+#include<cstdio>
+#include<cstring>
+#include<queue>
+#include<set>
+#include<vector>
+using namespace std;
+#define L(u) (u<<1)
+#define R(u) ((u<<1)|1)
+#define maxn 50005
+struct tre{
+    int l,r;
+}nod[maxn*4];
+int sum[maxn*4],ad[maxn*4],tov[maxn*2],nexti[maxn*2],head[maxn],a[maxn],size[maxn],fa[maxn],son[maxn],dfn[maxn],ma[maxn],top[maxn],d[maxn],num,m,n,p,c1,c2,w;
+char op[5];
+int dfs1(int u)
+{
+    size[u]=1;
+    int maxson=0,tmp=0;
+    int v=head[u];
+    while(v)
+    {
+        if(tov[v]!=fa[u])
+        {
+            d[tov[v]]=d[u]+1;
+            fa[tov[v]]=u;
+            tmp=dfs1(tov[v]);
+            size[u]+=tmp;
+            if(tmp>maxson)
+            {
+                maxson=tmp;
+                son[u]=tov[v];
+            }
+        }
+        v=nexti[v];
+    }
+    return size[u];
+}
+void dfs2(int u,int tp)
+{
+    dfn[u]=++num;
+    top[u]=tp;
+    ma[num]=u;
+    if(son[u])dfs2(son[u],tp);
+    int v=head[u];
+    while(v)
+    {
+        if(tov[v]!=fa[u]&&tov[v]!=son[u])
+        dfs2(tov[v],tov[v]);
+        v=nexti[v];
+    }
+}
+void pushup(int u){ sum[u]=sum[L(u)]+sum[R(u)]; }
+void pushdown(int u)
+{
+    sum[L(u)]+=ad[u]*(nod[L(u)].r-nod[L(u)].l+1);
+    ad[L(u)]+=ad[u];
+    sum[R(u)]+=ad[u]*(nod[R(u)].r-nod[R(u)].l+1);
+    ad[R(u)]+=ad[u];
+    ad[u]=0;
+}
+void build(int u,int le,int ri)
+{
+    nod[u].l=le,nod[u].r=ri;
+    if(le==ri)
+    {
+        sum[u]=a[ma[le]];
+        return;
+    }
+    int mid=(le+ri)/2;
+    build(L(u),le,mid);
+    build(R(u),mid+1,ri);
+    pushup(u);
+}
+void update(int u,int le,int ri,int val)
+{
+    if(nod[u].l>=le&&nod[u].r<=ri)
+    {
+        sum[u]+=val*(nod[u].r-nod[u].l+1);
+        ad[u]+=val;
+        return;
+    }
+    if(ad[u]) pushdown(u);
+    int mid=(nod[u].l+nod[u].r)/2;
+    if(ri<=mid)update(L(u),le,ri,val);
+    else if(le>mid)update(R(u),le,ri,val);
+    else
+    {
+        update(L(u),le,mid,val);
+        update(R(u),mid+1,ri,val);
+    }
+}
+int query(int u,int ai)
+{
+    if(nod[u].l==nod[u].r)
+        return sum[u];
+    if(ad[u])pushdown(u);
+    int mid=(nod[u].l+nod[u].r)/2;
+    if(ai<=mid) return query(L(u),ai);
+    else return query(R(u),ai);
+}
+void youth(int c1,int c2,int val)
+{
+    int tp1=top[c1],tp2=top[c2];
+    while(tp1!=tp2)
+    {
+        if(d[tp1]<d[tp2])
+        {
+            swap(tp1,tp2);
+            swap(c1,c2);
+        }
+        update(1,dfn[tp1],dfn[c1],val);
+        c1=fa[tp1];
+        tp1=top[c1];
+    }
+    if(d[c1]<d[c2])
+        swap(c1,c2);
+    update(1,dfn[c2],dfn[c1],val);
+}
+int main()
+{
+    while(scanf("%d%d%d",&n,&m,&p)==3)
+    {
+        num=0;
+        memset(head,0,sizeof(head));
+        memset(son,0,sizeof(son));
+        memset(fa,0,sizeof(fa));
+        memset(ad,0,sizeof(ad));
+        for(int i=1;i<=n;i++)
+            scanf("%d",&a[i]);
+        int a1,b1;
+        for(int i=1;i<=m;i++)
+        {
+            scanf("%d%d",&a1,&b1);
+            tov[i]=b1;
+            tov[i+m]=a1;
+            nexti[i]=head[a1];
+            nexti[i+m]=head[b1];
+            head[a1]=i;
+            head[b1]=i+m;
+        }
+        d[1]=1;
+        dfs1(1);
+        dfs2(1,1);
+        build(1,1,n);
+        while(p--)
+        {
+            scanf(" %s ",op);
+            if(op[0]=='I'||op[0]=='D')
+            {
+                scanf(" %d%d%d",&c1,&c2,&w);
+                if(op[0]=='D')
+                    w=-w;
+                youth(c1,c2,w);
+            }
+            else
+            {
+                scanf("%d",&c1);
+                printf("%d\n",query(1,dfn[c1]));
+            }
+        }
+    }
+    return 0;
+}
